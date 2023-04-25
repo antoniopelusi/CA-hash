@@ -5,16 +5,16 @@
 #-------------------- LIBRARIES --------------------#
 
 import numpy as np
-import hashlib
 
 #--------------------- CLASSES ---------------------#
 
 class randomgrid():
-    def __init__(self, size, key=0):
-        self.size = size
-
+    def __init__(self, grid_size, key=0):
+        self.size = grid_size
+        
         if key != 0:
             np.random.seed(key)
+            
             self.grid = np.random.randint(2, size=(self.size, self.size))
         else:
             self.grid = np.zeros(dtype=int, shape=(self.size, self.size))
@@ -28,7 +28,7 @@ class randomgrid():
                 else:
                     str_pg += "  "
             str_pg += "\n"
-        return str_pg
+        return str_pg        
 
     def _count_neighbors(self, i, j):
         counter = int(
@@ -69,16 +69,44 @@ class randomgrid():
                     
         return new_iteration
 
+#------------------- FUNCTIONS ---------------------#
+
+def bits_hash(bits, hash_length):
+    #join the single hex values excluding the 0
+    hex_list = ''.join(['%x' % int(bits[i:i+8], 10) for i in range(0, len(bits), 8) if int(bits[i:i+8]) != 0])
+
+    #split in single characters
+    hex_list = [c for c in list(hex_list)]
+
+    #select characters randomly to create the final hash with a better entropy
+    hashed_text = ''.join([hex_list[np.random.randint(len(hex_list))] for _ in range(hash_length)])
+
+    return hashed_text
+
 #---------------------- MAIN -----------------------#
 
-def CA_hash(plain_text, size=50, iter=100, stdout=False):
+def CA_hash(plain_text, hash_length=512, iter=100, grid_size=64, print_grid=False):
+
+    #assertions
+    if plain_text == "":
+        raise ValueError("Empty plain text")
+    
+    if hash_length > 512 or hash_length <1:
+        raise ValueError("Hash length not valid, limits: (1, 512)")
+    
+    if iter < 0:
+        raise ValueError("Game of Life iteration number not valid: can't be a negative number")
+    
+    if grid_size < 0:
+        raise ValueError("grid size not valid: can't be a negative number")
+
     #key is the decimal hash of the plaintext
-    key = int(hashlib.sha512(plain_text.encode('utf-8')).hexdigest(), 16) % 10**8
-
+    key = list(plain_text.encode('utf-8'))
+    print(key)
     #create random grid using the key as a seed
-    pg = randomgrid(size, key)
+    pg = randomgrid(grid_size, key)
 
-    if stdout:
+    if print_grid:
         print("\n")
         print("Initial grid:")
         print(pg)
@@ -87,19 +115,23 @@ def CA_hash(plain_text, size=50, iter=100, stdout=False):
     for _ in range(iter):
         pg = pg.next_iteration()
 
-    if stdout:
+    if print_grid:
         print(f"After {iter} iterations:")
         print(pg)
 
-    #sum the matrix bits in a string
+    #sum the grid bits in a string
     bits = str()
     for i in range(pg.size):
         for j in range(pg.size):
             bits += str(pg.grid[i][j])
 
     #calculate hash of the bits string
-    hashed_text = hashlib.sha512(bits.encode('utf-8')).hexdigest()
+    hashed_text = bits_hash(bits, hash_length)
 
+    #print the hashed text
     print(f"Hashed text: {hashed_text}")
 
-CA_hash(input("Plain text: "))
+#---------------------- TEST -----------------------#
+
+#try the hash function changing the following keyword parameters
+CA_hash(input("Plain text: "), hash_length=512, iter=100, grid_size=64, print_grid=True)
