@@ -19,7 +19,7 @@ Implementation of Game Of Life [here](https://github.com/antoniopelusi/game-of-l
 - don't use huge **iter** values, there could be recursions in the Game of Life grid
 
 ## Steps
-- generate the key converting the input into a list of the input characters econded in *utf-8*
+- generate the key converting the input string into a list of the input characters econded in *utf-8*
 - create the random grid using the key as seed
 - execute the non-reversible Game of Life iterations on the grid
-- generate the hexadecimal hash of the linearized final grid joining the hexadecimal values of the bits and getting them randomly to increare entropy
+- generate the hexadecimal hash of the linearized final grid joining the hexadecimal values of the bits (getting them randomly to increase entropy)
