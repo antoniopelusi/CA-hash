@@ -1,6 +1,8 @@
 # CA-hash 🛡️
 **Experimental hash function** based on the non-reversible **C**ellular **A**utomata [*Game of Life*](https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life)
 
+Implementation of Game Of Life [here](https://github.com/antoniopelusi/game-of-life-CLI)!
+
 ## Parameters
 - **hash_length**: the length of the final hash
 - **iter**: number of the Game of Life iterations applied to the initial grid
