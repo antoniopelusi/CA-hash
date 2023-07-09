@@ -5,6 +5,7 @@
 #-------------------- LIBRARIES --------------------#
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 #--------------------- CLASSES ---------------------#
 
@@ -18,7 +19,7 @@ class randomgrid():
             self.grid = np.random.randint(2, size=(self.size, self.size))
         else:
             self.grid = np.zeros(dtype=int, shape=(self.size, self.size))
-        
+
     def __repr__(self):
         str_pg = str()
         for i in range(self.size):
@@ -71,38 +72,50 @@ class randomgrid():
 
 #------------------- FUNCTIONS ---------------------#
 
-def bits_hash(bits, hash_length):
-    #join the single hex values excluding the 0
-    hex_list = ''.join(['%x' % int(bits[i:i+8], 10) for i in range(0, len(bits), 8) if int(bits[i:i+8]) != 0])
+def bits_hash(pg):
+    #sum the grid bits in a string
+    bits = str()
+    for i in range(pg.size):
+        for j in range(pg.size):
+            bits += str(pg.grid[j][i])
+    
+    #remove strings of "0" with a length of 5, usually created during Game Of Life iterations
+    bits = bits.replace("0"*5, "")
 
-    #split in single characters
-    hex_list = [c for c in list(hex_list)]
+    #bits shuffle
+    bits = list(bits)
+    np.random.shuffle(bits)
+    bits = "".join(bits)
 
-    #select characters randomly to create the final hash with a better entropy
-    hashed_text = ''.join([hex_list[np.random.randint(len(hex_list))] for _ in range(hash_length)])
+    #convert groups of 4 binary bits into hexadecimal values
+    hex_bits = [hex(int(bits[n:n+4], 2))[2:].upper() for n in range(0, len(bits), 4)]
+    
+    #hash shuffle
+    np.random.shuffle(hex_bits)
+    hex_bits = "".join(hex_bits)
 
-    return hashed_text
+    return hex_bits
 
 #---------------------- MAIN -----------------------#
 
-def CA_hash(plain_text, hash_length=512, iter=100, grid_size=64, print_grid=False):
+def CA_hash(plain_text, hash_length=512, iter=5, grid_size=128, print_grid=False):
 
     #assertions
     if plain_text == "":
         raise ValueError("Empty plain text")
     
-    if hash_length > 512 or hash_length <1:
-        raise ValueError("Hash length not valid, limits: (1, 512)")
+    if hash_length < 0:
+        raise ValueError("Hash length not valid: can't be a negative number")
     
     if iter < 0:
-        raise ValueError("Game of Life iteration number not valid: can't be a negative number")
+        raise ValueError("Game of Life iteration not valid: can't be a negative number")
     
     if grid_size < 0:
-        raise ValueError("grid size not valid: can't be a negative number")
+        raise ValueError("Grid size not valid: can't be a negative number")
 
     #key is the decimal hash of the plaintext
     key = list(plain_text.encode('utf-8'))
-    print(key)
+
     #create random grid using the key as a seed
     pg = randomgrid(grid_size, key)
 
@@ -119,19 +132,62 @@ def CA_hash(plain_text, hash_length=512, iter=100, grid_size=64, print_grid=Fals
         print(f"After {iter} iterations:")
         print(pg)
 
-    #sum the grid bits in a string
-    bits = str()
-    for i in range(pg.size):
-        for j in range(pg.size):
-            bits += str(pg.grid[i][j])
-
     #calculate hash of the bits string
-    hashed_text = bits_hash(bits, hash_length)
+    hashed_text = bits_hash(pg)
+
+    #check if there is enough entropy to get the hash with the desired size
+    if hash_length > len(hashed_text):
+        raise ValueError(f"Not enough entropy to get an hash of {hash_length} characters")
+
+    #trim the hash to the desired size
+    if hash_length != 0:
+        hashed_text = hashed_text[:hash_length]
+
+    #return hashed text
+    return hashed_text
+
+#----------------------- USE -----------------------#
+
+#-------------------#
+#       modes       #
+#-------------------#
+# - hash:       0   #
+# - bias_test:  1   #
+#-------------------#
+mode = 0
+#-------------------#
+
+
+if mode == 0:
+    #try the hash function changing the following keyword parameters
+    hashed_text = CA_hash(input("\nPlain text:\n"), hash_length=512, iter=5, grid_size=128, print_grid=False)
 
     #print the hashed text
-    print(f"Hashed text: {hashed_text}")
+    print(f"\nHashed text:\n{hashed_text}")
+    print(f"\nHash length:\n{len(hashed_text)}")
 
-#---------------------- TEST -----------------------#
+elif mode == 1:
+#-----------------------#
+    n_iteration = 10
+#-----------------------#
 
-#try the hash function changing the following keyword parameters
-CA_hash(input("Plain text: "), hash_length=512, iter=100, grid_size=64, print_grid=True)
+    count = {'0': 0, '1': 0, '2': 0, '3': 0, '4': 0, '5': 0, '6': 0, '7': 0, '8': 0, '9': 0, 'A': 0, 'B': 0, 'C': 0, 'D': 0, 'E': 0, 'F': 0}
+
+    total_count = 0
+
+    for n in range(n_iteration):
+        hashed_text = CA_hash(str(n), hash_length=512, iter=5, grid_size=128)
+        for c in hashed_text:
+            count[c] += 1
+
+        total_count += len(hashed_text)
+
+    print(count)
+
+    plt.figure(figsize=(10,5))
+    plt.bar(list(count.keys()), list(count.values()))
+    plt.title("Total count:" + str(total_count))
+    plt.xlabel('Value')
+    plt.ylabel('Count')
+
+    plt.show()
